@@ -1,0 +1,11 @@
+{
+  "domain": "sfelapco",
+  "name": "SFELAPCO Generation Charge Monitor",
+  "codeowners": ["@yourusername"],
+  "dependencies": [],
+  "documentation": "https://github.com/yourusername/homeassistant-sfelapco-generation-charge",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/yourusername/homeassistant-sfelapco-generation-charge/issues",
+  "requirements": ["aiohttp"],
+  "version": "1.0.0"
+}

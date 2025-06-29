@@ -15,7 +15,6 @@ import sys
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from flask import Flask, render_template, jsonify
-import paho.mqtt.client as mqtt
 from threading import Thread
 
 # Configure logging
@@ -38,15 +37,8 @@ class SFELAPCOMonitor:
         self.retain_history = os.getenv('RETAIN_HISTORY', 'true').lower() == 'true'
         self.max_history_days = int(os.getenv('MAX_HISTORY_DAYS', 365))
         
-        # MQTT configuration
-        self.mqtt_client = None
-        self.ha_mqtt_discovery_prefix = "homeassistant"
-        
         # Load existing data
         self.load_data()
-        
-        # Initialize MQTT if available
-        self.init_mqtt()
         
     def load_data(self):
         """Load existing data from file"""
@@ -75,177 +67,6 @@ class SFELAPCOMonitor:
         except Exception as e:
             logger.error(f"Error saving data: {e}")
             
-    def init_mqtt(self):
-        """Initialize MQTT connection for Home Assistant integration"""
-        try:
-            # List of MQTT hosts to try in order
-            mqtt_hosts_to_try = [
-                "core-mosquitto",      # Home Assistant Mosquitto add-on
-                "mosquitto",           # Alternative Mosquitto service name
-                "localhost",           # Local MQTT
-                "127.0.0.1",          # Local IP
-                "supervisor",          # Supervisor network
-                os.getenv('MQTT_HOST', ''),  # Environment variable
-            ]
-            
-            # Remove empty entries
-            mqtt_hosts_to_try = [host for host in mqtt_hosts_to_try if host]
-            
-            logger.info(f"Attempting MQTT connection to hosts: {mqtt_hosts_to_try}")
-            
-            for mqtt_host in mqtt_hosts_to_try:
-                try:
-                    logger.info(f"Trying MQTT connection to {mqtt_host}...")
-                    self.mqtt_client = mqtt.Client()
-                    
-                    # Set up connection callbacks for better debugging
-                    def on_connect(client, userdata, flags, rc):
-                        if rc == 0:
-                            logger.info(f"MQTT connected successfully to {mqtt_host}")
-                        else:
-                            logger.warning(f"MQTT connection failed to {mqtt_host} with code {rc}")
-                    
-                    def on_disconnect(client, userdata, rc):
-                        logger.warning(f"MQTT disconnected from {mqtt_host} with code {rc}")
-                    
-                    self.mqtt_client.on_connect = on_connect
-                    self.mqtt_client.on_disconnect = on_disconnect
-                    
-                    # Try to connect with a shorter timeout
-                    self.mqtt_client.connect(mqtt_host, 1883, 60)
-                    self.mqtt_client.loop_start()
-                    
-                    # Wait a moment to see if connection succeeds
-                    import time
-                    time.sleep(2)
-                    
-                    if self.mqtt_client.is_connected():
-                        logger.info(f"MQTT client connected successfully to {mqtt_host}")
-                        
-                        # Send Home Assistant MQTT Discovery messages
-                        self.send_ha_discovery()
-                        return  # Success, exit the function
-                    else:
-                        logger.warning(f"MQTT client failed to connect to {mqtt_host}")
-                        self.mqtt_client.disconnect()
-                        self.mqtt_client = None
-                        
-                except Exception as connect_error:
-                    logger.warning(f"Could not connect to MQTT at {mqtt_host}: {connect_error}")
-                    if self.mqtt_client:
-                        try:
-                            self.mqtt_client.disconnect()
-                        except:
-                            pass
-                        self.mqtt_client = None
-            
-            # If we get here, no connection succeeded
-            logger.warning("Failed to connect to MQTT with any host. MQTT integration disabled.")
-            logger.info("Add-on will continue to work but without Home Assistant sensor integration.")
-            logger.info("To enable MQTT, ensure the Mosquitto broker add-on is installed and running.")
-            self.mqtt_client = None
-                
-        except Exception as e:
-            logger.warning(f"MQTT initialization failed: {e}")
-            self.mqtt_client = None
-            
-    def send_ha_discovery(self):
-        """Send Home Assistant MQTT Discovery configuration"""
-        if not self.mqtt_client:
-            return
-            
-        try:
-            # Generation Charge sensor
-            charge_config = {
-                "name": "SFELAPCO Generation Charge",
-                "unique_id": "sfelapco_generation_charge",
-                "state_topic": "sfelapco/generation_charge",
-                "json_attributes_topic": "sfelapco/generation_charge_attributes",
-                "unit_of_measurement": "PHP/kWh",
-                "device_class": "monetary",
-                "icon": "mdi:flash",
-                "device": {
-                    "identifiers": ["sfelapco_monitor"],
-                    "name": "SFELAPCO Monitor",
-                    "manufacturer": "SFELAPCO Addon",
-                    "model": "Generation Charge Monitor",
-                    "sw_version": "1.0.0"
-                }
-            }
-            
-            # Last Update sensor
-            update_config = {
-                "name": "SFELAPCO Last Update",
-                "unique_id": "sfelapco_last_update",
-                "state_topic": "sfelapco/last_update",
-                "device_class": "timestamp",
-                "icon": "mdi:clock",
-                "device": {
-                    "identifiers": ["sfelapco_monitor"],
-                    "name": "SFELAPCO Monitor",
-                    "manufacturer": "SFELAPCO Addon",
-                    "model": "Generation Charge Monitor", 
-                    "sw_version": "1.0.0"
-                }
-            }
-            
-            # Publish discovery configs
-            self.mqtt_client.publish(
-                f"{self.ha_mqtt_discovery_prefix}/sensor/sfelapco_charge/config",
-                json.dumps(charge_config),
-                retain=True
-            )
-            
-            self.mqtt_client.publish(
-                f"{self.ha_mqtt_discovery_prefix}/sensor/sfelapco_update/config", 
-                json.dumps(update_config),
-                retain=True
-            )
-            
-            logger.info("Home Assistant MQTT Discovery sent")
-            
-        except Exception as e:
-            logger.error(f"Error sending HA discovery: {e}")
-            
-    def publish_mqtt_data(self):
-        """Publish current data to MQTT"""
-        if not self.mqtt_client or not self.current_charge:
-            logger.debug("MQTT not available or no current charge data")
-            return
-            
-        try:
-            # Publish generation charge state
-            self.mqtt_client.publish(
-                "sfelapco/generation_charge",
-                str(self.current_charge['rate'])
-            )
-            
-            # Publish generation charge attributes
-            charge_data = {
-                "value": self.current_charge['rate'],
-                "month": self.current_charge['month'],
-                "year": self.current_charge['year'],
-                "last_updated": self.last_update
-            }
-            
-            self.mqtt_client.publish(
-                "sfelapco/generation_charge_attributes",
-                json.dumps(charge_data)
-            )
-            
-            # Publish last update
-            self.mqtt_client.publish(
-                "sfelapco/last_update",
-                self.last_update
-            )
-            
-            logger.info(f"Published data to MQTT: {self.current_charge['rate']} PHP/kWh")
-            
-        except Exception as e:
-            logger.error(f"Error publishing to MQTT: {e}")
-            # Try to reconnect MQTT on next update
-            self.mqtt_client = None
-    
     def scrape_generation_charge(self):
         """Scrape generation charge from SFELAPCO website"""
         try:
@@ -320,11 +141,6 @@ class SFELAPCOMonitor:
                 # Save data
                 self.save_data()
                 
-                # Publish to MQTT (with retry)
-                if not self.mqtt_client:
-                    self.init_mqtt()  # Try to reconnect MQTT
-                self.publish_mqtt_data()
-                
                 if old_charge != new_charge:
                     logger.info(f"New generation charge: {month} {year} - {rate} PHP/kWh")
                 else:
@@ -388,22 +204,17 @@ def health():
 @app.route('/debug')
 def debug():
     """Debug route to check ingress headers and connection info"""
-    mqtt_status = "Disconnected"
-    if monitor.mqtt_client and monitor.mqtt_client.is_connected():
-        mqtt_status = "Connected"
-    elif monitor.mqtt_client:
-        mqtt_status = "Client exists but not connected"
-    
     return jsonify({
         'remote_addr': request.environ.get('REMOTE_ADDR'),
         'headers': dict(request.headers),
         'ingress_path': request.headers.get('X-Ingress-Path', 'Not set'),
         'method': request.method,
         'url': request.url,
-        'mqtt_status': mqtt_status,
-        'mqtt_client_exists': monitor.mqtt_client is not None,
         'current_charge': monitor.current_charge,
-        'last_update': monitor.last_update
+        'last_update': monitor.last_update,
+        'update_interval_days': monitor.update_interval_days,
+        'retain_history': monitor.retain_history,
+        'max_history_days': monitor.max_history_days
     })
 
 @app.route('/api/status')
@@ -433,29 +244,6 @@ def api_update():
     except Exception as e:
         logger.error(f"Error in manual update: {e}")
         return jsonify({'success': False, 'error': str(e), 'status': monitor.get_status()}), 500
-
-@app.route('/api/mqtt/reconnect')
-def api_mqtt_reconnect():
-    """Manual MQTT reconnection for testing"""
-    try:
-        logger.info("Manual MQTT reconnection requested")
-        monitor.init_mqtt()
-        
-        mqtt_status = "Disconnected"
-        if monitor.mqtt_client and monitor.mqtt_client.is_connected():
-            mqtt_status = "Connected"
-        elif monitor.mqtt_client:
-            mqtt_status = "Client exists but not connected"
-            
-        result = {
-            'mqtt_status': mqtt_status,
-            'mqtt_client_exists': monitor.mqtt_client is not None,
-            'success': monitor.mqtt_client is not None and monitor.mqtt_client.is_connected()
-        }
-        return jsonify(result)
-    except Exception as e:
-        logger.error(f"Error in MQTT reconnection: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 def run_scheduler():
     """Run the scheduled tasks"""

@@ -1,6 +1,6 @@
 # SFELAPCO Generation Charge Monitor Add-ons
 
-This repository contains Home Assistant add-ons for monitoring SFELAPCO (San Fernando Electric Light And Power Company) generation charges and electricity rates.
+This repository contains Home Assistant add-ons and integrations for monitoring SFELAPCO (San Fernando Electric Light And Power Company) generation charges and electricity rates.
 
 Add-on documentation: <https://developers.home-assistant.io/docs/add-ons>
 
@@ -18,7 +18,33 @@ This repository contains the following add-ons:
 ![Supports armv7 Architecture][armv7-shield]
 ![Supports i386 Architecture][i386-shield]
 
-_Monitor SFELAPCO monthly generation charges and electricity rates with automatic Home Assistant integration._
+_Monitor SFELAPCO monthly generation charges and electricity rates with web interface and API access._
+
+## Home Assistant Integration
+
+This repository also includes a custom Home Assistant integration for seamless sensor creation:
+
+### [SFELAPCO Custom Integration](./home_assistant_integration)
+
+A proper Home Assistant integration that creates sensors by polling the addon's API. Features:
+
+- Easy setup via config flow
+- Automatic sensor discovery
+- Efficient data coordination
+- Rich sensor attributes
+
+## Installation Options
+
+### Option 1: Addon Only (Web Interface + API)
+1. Add this repository to Home Assistant Supervisor
+2. Install the SFELAPCO addon
+3. Use the web interface or integrate via RESTful sensors
+
+### Option 2: Addon + Custom Integration (Recommended)
+1. Install the addon (as above)
+2. Copy the `home_assistant_integration/sfelapco` folder to `<config>/custom_components/sfelapco`
+3. Restart Home Assistant
+4. Add the SFELAPCO integration via Settings → Integrations
 
 <!--
 

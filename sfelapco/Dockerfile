@@ -13,8 +13,8 @@ RUN apk add --no-cache \
 
 # Install additional packages via pip (using --break-system-packages for Alpine)
 RUN pip3 install --break-system-packages --no-cache-dir \
-    paho-mqtt \
-    schedule
+    schedule \
+    gunicorn
 
 # Copy application files
 COPY run.sh /

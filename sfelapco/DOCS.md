@@ -31,9 +31,9 @@ This add-on monitors the SFELAPCO website for generation charge updates and auto
 
 - 🔄 **Automatic Data Fetching**: Regularly scrapes generation charge data from the SFELAPCO website
 - 📊 **Historical Tracking**: Maintains a history of generation charges over time  
-- 🏠 **Home Assistant Integration**: Creates sensors automatically via MQTT discovery
-- 🌐 **Web Interface**: Beautiful web dashboard to view current rates and history
+-  **Web Interface**: Beautiful web dashboard to view current rates and history
 - ⚙️ **Configurable**: Adjustable update intervals and data retention settings
+- 🔌 **API Access**: RESTful API for integration with Home Assistant or other systems
 
 ### Web Interface
 
@@ -43,14 +43,33 @@ After starting the add-on, you can access the web interface by clicking "OPEN WE
 - Historical data visualization
 - Update status and logs
 
+### API Integration
+
+The add-on provides RESTful API endpoints that can be used to integrate with Home Assistant or other systems:
+
+- `/api/status` - Get current status and configuration
+- `/api/history` - Get historical charge data
+- `/api/update` - Manually trigger data update
+
 ### Home Assistant Integration
 
-The add-on automatically creates the following sensors in Home Assistant:
+For Home Assistant integration, you can use the RESTful sensor platform to create sensors from the add-on's API:
 
-- `sensor.sfelapco_generation_charge`: Current generation charge rate (PHP/kWh)
-- `sensor.sfelapco_last_update`: Timestamp of last successful update
-
-These sensors will appear automatically in your Home Assistant instance once the add-on starts and connects to your MQTT broker.
+```yaml
+sensor:
+  - platform: rest
+    name: "SFELAPCO Generation Charge"
+    resource: "http://localhost:8099/api/status"
+    value_template: "{{ value_json.current_charge.rate if value_json.current_charge else 'unavailable' }}"
+    unit_of_measurement: "PHP/kWh"
+    device_class: monetary
+    icon: "mdi:flash"
+    scan_interval: 3600
+    json_attributes:
+      - current_charge
+      - last_update
+      - history_count
+```
 
 ## Configuration
 

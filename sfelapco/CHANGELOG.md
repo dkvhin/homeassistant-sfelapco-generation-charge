@@ -2,6 +2,39 @@
 
 All notable changes to the SFELAPCO Generation Charge Monitor addon will be documented in this file.
 
+## [1.0.2] - 2025-06-29
+
+### Breaking Changes
+- **REMOVED MQTT integration** - The addon now focuses on data collection and web interface only
+- Home Assistant integration moved to separate custom integration (see `/home_assistant_integration`)
+
+### Added
+- RESTful API endpoints for integration (`/api/status`, `/api/history`, `/api/update`)
+- Enhanced web interface for viewing current rates and history
+- Better error handling and logging
+- Production WSGI server (Gunicorn) support
+
+### Changed
+- Simplified addon configuration (removed MQTT-related options)
+- Updated documentation with API usage examples
+- Improved performance by removing MQTT dependencies
+
+### Migration Guide
+For Home Assistant sensor integration:
+1. **Option 1**: Use the new custom integration (recommended)
+   - Copy `home_assistant_integration/sfelapco` to `<config>/custom_components/sfelapco`
+   - Restart HA and add integration via UI
+
+2. **Option 2**: Use RESTful sensor platform
+   ```yaml
+   sensor:
+     - platform: rest
+       name: "SFELAPCO Generation Charge"
+       resource: "http://localhost:8099/api/status"
+       value_template: "{{ value_json.current_charge.rate if value_json.current_charge else 'unavailable' }}"
+       unit_of_measurement: "PHP/kWh"
+   ```
+
 ## [1.0.0] - 2025-06-29
 
 ### Added

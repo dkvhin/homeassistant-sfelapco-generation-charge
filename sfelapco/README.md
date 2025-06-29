@@ -1,14 +1,14 @@
 # SFELAPCO Generation Charge Monitor
 
-A Home Assistant addon that monitors and tracks the monthly generation charges from San Fernando Electric Light And Power Company (SFELAPCO).
+A Home Assistant addon that monitors and tracks the monthly generation charges from San Fernando Electric Light And Power Company (SFELAPCO). This addon provides a web interface for viewing current rates and historical data.
 
 ## Features
 
 - 🔄 **Automatic Data Fetching**: Regularly scrapes generation charge data from the SFELAPCO website
 - 📊 **Historical Tracking**: Maintains a history of generation charges over time
-- 🏠 **Home Assistant Integration**: Creates sensors automatically via MQTT discovery
-- 🌐 **Web Interface**: Beautiful web dashboard to view current rates and history
+-  **Web Interface**: Beautiful web dashboard to view current rates and history
 - ⚙️ **Configurable**: Adjustable update intervals and data retention settings
+- 🔌 **API Access**: RESTful API for integration with Home Assistant or other systems
 
 ## Installation
 
@@ -31,12 +31,48 @@ max_history_days: 365        # Maximum days of history to keep
 - **retain_history**: Set to `false` to disable historical data collection
 - **max_history_days**: Maximum number of days to keep historical data (1-1095 days)
 
+## API Endpoints
+
+The addon provides several API endpoints for integration:
+
+- `GET /api/status` - Current status and configuration
+- `GET /api/history` - Historical charge data
+- `POST /api/update` - Manually trigger data update
+- `GET /health` - Health check endpoint
+
+### Example API Usage
+
+```bash
+# Get current status
+curl http://your-ha-instance:8099/api/status
+
+# Get historical data
+curl http://your-ha-instance:8099/api/history
+
+# Trigger manual update
+curl -X POST http://your-ha-instance:8099/api/update
+```
+
 ## Home Assistant Integration
 
-The addon automatically creates the following sensors in Home Assistant:
+For Home Assistant sensor integration, create a separate custom integration or use the RESTful sensor platform:
 
-- `sensor.sfelapco_generation_charge`: Current generation charge rate (PHP/kWh)
-- `sensor.sfelapco_last_update`: Timestamp of last successful update
+```yaml
+# In your Home Assistant configuration.yaml
+sensor:
+  - platform: rest
+    name: "SFELAPCO Generation Charge"
+    resource: "http://localhost:8099/api/status"
+    value_template: "{{ value_json.current_charge.rate if value_json.current_charge else 'unavailable' }}"
+    unit_of_measurement: "PHP/kWh"
+    device_class: monetary
+    icon: "mdi:flash"
+    scan_interval: 3600  # Update every hour
+    json_attributes:
+      - current_charge
+      - last_update
+      - history_count
+```
 
 ### Example Automations
 
