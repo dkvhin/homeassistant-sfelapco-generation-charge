@@ -78,38 +78,72 @@ class SFELAPCOMonitor:
     def init_mqtt(self):
         """Initialize MQTT connection for Home Assistant integration"""
         try:
-            # Try multiple ways to detect MQTT availability
-            mqtt_available = False
+            # List of MQTT hosts to try in order
+            mqtt_hosts_to_try = [
+                "core-mosquitto",      # Home Assistant Mosquitto add-on
+                "mosquitto",           # Alternative Mosquitto service name
+                "localhost",           # Local MQTT
+                "127.0.0.1",          # Local IP
+                "supervisor",          # Supervisor network
+                os.getenv('MQTT_HOST', ''),  # Environment variable
+            ]
             
-            # Check for supervisor MQTT service
-            if os.path.exists('/run/s6/services/mqtt') or os.path.exists('/run/s6-rc/servicedirs/mqtt'):
-                mqtt_available = True
-                mqtt_host = "core-mosquitto"
-            # Check for local MQTT
-            elif os.path.exists('/var/run/mosquitto/mosquitto.pid'):
-                mqtt_available = True
-                mqtt_host = "localhost"
-            # Try environment variable
-            elif os.getenv('MQTT_HOST'):
-                mqtt_available = True
-                mqtt_host = os.getenv('MQTT_HOST')
+            # Remove empty entries
+            mqtt_hosts_to_try = [host for host in mqtt_hosts_to_try if host]
             
-            if mqtt_available:
-                self.mqtt_client = mqtt.Client()
-                
-                # Try to connect
+            logger.info(f"Attempting MQTT connection to hosts: {mqtt_hosts_to_try}")
+            
+            for mqtt_host in mqtt_hosts_to_try:
                 try:
+                    logger.info(f"Trying MQTT connection to {mqtt_host}...")
+                    self.mqtt_client = mqtt.Client()
+                    
+                    # Set up connection callbacks for better debugging
+                    def on_connect(client, userdata, flags, rc):
+                        if rc == 0:
+                            logger.info(f"MQTT connected successfully to {mqtt_host}")
+                        else:
+                            logger.warning(f"MQTT connection failed to {mqtt_host} with code {rc}")
+                    
+                    def on_disconnect(client, userdata, rc):
+                        logger.warning(f"MQTT disconnected from {mqtt_host} with code {rc}")
+                    
+                    self.mqtt_client.on_connect = on_connect
+                    self.mqtt_client.on_disconnect = on_disconnect
+                    
+                    # Try to connect with a shorter timeout
                     self.mqtt_client.connect(mqtt_host, 1883, 60)
                     self.mqtt_client.loop_start()
-                    logger.info(f"MQTT client connected to {mqtt_host}")
                     
-                    # Send Home Assistant MQTT Discovery messages
-                    self.send_ha_discovery()
+                    # Wait a moment to see if connection succeeds
+                    import time
+                    time.sleep(2)
+                    
+                    if self.mqtt_client.is_connected():
+                        logger.info(f"MQTT client connected successfully to {mqtt_host}")
+                        
+                        # Send Home Assistant MQTT Discovery messages
+                        self.send_ha_discovery()
+                        return  # Success, exit the function
+                    else:
+                        logger.warning(f"MQTT client failed to connect to {mqtt_host}")
+                        self.mqtt_client.disconnect()
+                        self.mqtt_client = None
+                        
                 except Exception as connect_error:
                     logger.warning(f"Could not connect to MQTT at {mqtt_host}: {connect_error}")
-                    self.mqtt_client = None
-            else:
-                logger.info("MQTT service not detected, running without MQTT integration")
+                    if self.mqtt_client:
+                        try:
+                            self.mqtt_client.disconnect()
+                        except:
+                            pass
+                        self.mqtt_client = None
+            
+            # If we get here, no connection succeeded
+            logger.warning("Failed to connect to MQTT with any host. MQTT integration disabled.")
+            logger.info("Add-on will continue to work but without Home Assistant sensor integration.")
+            logger.info("To enable MQTT, ensure the Mosquitto broker add-on is installed and running.")
+            self.mqtt_client = None
                 
         except Exception as e:
             logger.warning(f"MQTT initialization failed: {e}")
@@ -354,12 +388,22 @@ def health():
 @app.route('/debug')
 def debug():
     """Debug route to check ingress headers and connection info"""
+    mqtt_status = "Disconnected"
+    if monitor.mqtt_client and monitor.mqtt_client.is_connected():
+        mqtt_status = "Connected"
+    elif monitor.mqtt_client:
+        mqtt_status = "Client exists but not connected"
+    
     return jsonify({
         'remote_addr': request.environ.get('REMOTE_ADDR'),
         'headers': dict(request.headers),
         'ingress_path': request.headers.get('X-Ingress-Path', 'Not set'),
         'method': request.method,
-        'url': request.url
+        'url': request.url,
+        'mqtt_status': mqtt_status,
+        'mqtt_client_exists': monitor.mqtt_client is not None,
+        'current_charge': monitor.current_charge,
+        'last_update': monitor.last_update
     })
 
 @app.route('/api/status')
@@ -389,6 +433,29 @@ def api_update():
     except Exception as e:
         logger.error(f"Error in manual update: {e}")
         return jsonify({'success': False, 'error': str(e), 'status': monitor.get_status()}), 500
+
+@app.route('/api/mqtt/reconnect')
+def api_mqtt_reconnect():
+    """Manual MQTT reconnection for testing"""
+    try:
+        logger.info("Manual MQTT reconnection requested")
+        monitor.init_mqtt()
+        
+        mqtt_status = "Disconnected"
+        if monitor.mqtt_client and monitor.mqtt_client.is_connected():
+            mqtt_status = "Connected"
+        elif monitor.mqtt_client:
+            mqtt_status = "Client exists but not connected"
+            
+        result = {
+            'mqtt_status': mqtt_status,
+            'mqtt_client_exists': monitor.mqtt_client is not None,
+            'success': monitor.mqtt_client is not None and monitor.mqtt_client.is_connected()
+        }
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in MQTT reconnection: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 def run_scheduler():
     """Run the scheduled tasks"""
