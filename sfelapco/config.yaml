@@ -3,6 +3,7 @@ description: "Monitor SFELAPCO monthly generation charges and electricity rates"
 version: "1.0.1"
 slug: "sfelapco"
 init: false
+# image: "ghcr.io/yourusername/sfelapco-{arch}"
 arch:
   - aarch64
   - amd64

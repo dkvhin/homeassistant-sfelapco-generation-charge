@@ -1,0 +1,133 @@
+# Home Assistant Add-on: SFELAPCO Generation Charge Monitor
+
+## Installation
+
+1. Add this repository to your Home Assistant Supervisor:
+   - Navigate to the Supervisor panel in Home Assistant
+   - Click on the Add-on Store
+   - Click on the three dots menu (⋮) in the top right
+   - Select "Repositories"
+   - Add this repository URL: `https://github.com/yourusername/homeassistant-sfelapco-generation-charge`
+   - Click "Add"
+
+2. Install the SFELAPCO Generation Charge Monitor add-on:
+   - Find the add-on in the store
+   - Click "Install"
+
+3. Configure the add-on (optional):
+   - Click on the add-on
+   - Go to the "Configuration" tab
+   - Adjust settings as needed
+
+4. Start the add-on:
+   - Click "Start"
+   - Optionally enable "Start on boot" and "Watchdog"
+
+## How to use
+
+This add-on monitors the SFELAPCO website for generation charge updates and automatically creates Home Assistant sensors via MQTT discovery.
+
+### Features
+
+- 🔄 **Automatic Data Fetching**: Regularly scrapes generation charge data from the SFELAPCO website
+- 📊 **Historical Tracking**: Maintains a history of generation charges over time  
+- 🏠 **Home Assistant Integration**: Creates sensors automatically via MQTT discovery
+- 🌐 **Web Interface**: Beautiful web dashboard to view current rates and history
+- ⚙️ **Configurable**: Adjustable update intervals and data retention settings
+
+### Web Interface
+
+After starting the add-on, you can access the web interface by clicking "OPEN WEB UI" in the add-on details. This provides:
+
+- Current generation charge rate
+- Historical data visualization
+- Update status and logs
+
+### Home Assistant Integration
+
+The add-on automatically creates the following sensors in Home Assistant:
+
+- `sensor.sfelapco_generation_charge`: Current generation charge rate (PHP/kWh)
+- `sensor.sfelapco_last_update`: Timestamp of last successful update
+
+These sensors will appear automatically in your Home Assistant instance once the add-on starts and connects to your MQTT broker.
+
+## Configuration
+
+```yaml
+update_interval: 1.0         # Update interval in days (default: 1 day)
+retain_history: true         # Whether to keep historical data
+max_history_days: 365        # Maximum days of history to keep
+```
+
+### Option: `update_interval`
+
+How often to check for new data from the SFELAPCO website.
+
+- **Required**: No
+- **Default**: `1.0`
+- **Type**: Float (0.1-30.0)
+- **Description**: Update interval in days. For example:
+  - `1.0` = Check once per day
+  - `0.5` = Check twice per day  
+  - `7.0` = Check once per week
+
+### Option: `retain_history`
+
+Whether to keep historical data for tracking trends over time.
+
+- **Required**: No
+- **Default**: `true`
+- **Type**: Boolean
+- **Description**: Set to `false` to disable historical data collection and only track current rates.
+
+### Option: `max_history_days`
+
+Maximum number of days of historical data to keep.
+
+- **Required**: No
+- **Default**: `365`
+- **Type**: Integer (1-1095)
+- **Description**: Older historical data will be automatically cleaned up to keep storage usage reasonable.
+
+## Support
+
+Got questions?
+
+You have several options to get them answered:
+
+- The [Home Assistant Community Forum](https://community.home-assistant.io/)
+- The [Home Assistant Discord Chat Server](https://discord.gg/c5DvZ4e) for general Home Assistant discussions and questions
+- Join the [r/homeassistant subreddit](https://reddit.com/r/homeassistant) for discussions and help
+
+## Authors & contributors
+
+This add-on is maintained by [Your Name].
+
+For a full list of all authors and contributors, check [the contributor's page on GitHub][contributors].
+
+## License
+
+MIT License
+
+Copyright (c) 2025 [Your Name]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+[contributors]: https://github.com/yourusername/homeassistant-sfelapco-generation-charge/graphs/contributors
