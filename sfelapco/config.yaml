@@ -1,6 +1,6 @@
 name: "SFELAPCO Generation Charge Monitor"
 description: "Monitor SFELAPCO monthly generation charges and electricity rates"
-version: "1.0.3"
+version: "1.0.4"
 slug: "sfelapco"
 init: false
 # image: "ghcr.io/yourusername/sfelapco-{arch}"
@@ -20,6 +20,8 @@ schema:
   update_interval: float(0.1,30.0)
   retain_history: bool
   max_history_days: int(1,1095)
+ports:
+  8099/tcp: 8099
 ingress: true
 panel_icon: "mdi:lightning-bolt"
 panel_header: "SFELAPCO Generation Charge Monitor"

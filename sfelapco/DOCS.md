@@ -37,15 +37,25 @@ This add-on monitors the SFELAPCO website for generation charge updates and auto
 
 ### Web Interface
 
-After starting the add-on, you can access the web interface by clicking "OPEN WEB UI" in the add-on details. This provides:
+After starting the add-on, you can access the web interface in two ways:
+
+1. **Home Assistant Ingress**: Click "OPEN WEB UI" in the add-on details for a seamless experience
+2. **Direct Access**: Visit `http://homeassistant.local:8099` (or use your Home Assistant IP address)
+
+The web interface provides:
 
 - Current generation charge rate
 - Historical data visualization
 - Update status and logs
+- Debug information for troubleshooting
 
 ### API Integration
 
-The add-on provides RESTful API endpoints that can be used to integrate with Home Assistant or other systems:
+The add-on exposes port 8099 and provides RESTful API endpoints for integration with Home Assistant or other systems:
+
+**Base URL**: `http://localhost:8099` (when accessed from within Home Assistant)
+
+**Available Endpoints**:
 
 - `/api/status` - Get current status and configuration
 - `/api/history` - Get historical charge data
@@ -78,6 +88,19 @@ update_interval: 1.0         # Update interval in days (default: 1 day)
 retain_history: true         # Whether to keep historical data
 max_history_days: 365        # Maximum days of history to keep
 ```
+
+### Network Access
+
+The add-on is configured with both ingress and port exposure:
+
+- **Ingress**: Access via Home Assistant's "OPEN WEB UI" button (seamless integration)
+- **Port 8099**: Direct network access for API calls from integrations
+- **Security**: Only accepts connections from the Home Assistant supervisor network and localhost
+
+This dual configuration allows:
+1. User-friendly web interface access through ingress
+2. API access for the custom Home Assistant integration
+3. Direct API access for advanced users and external tools
 
 ### Option: `update_interval`
 

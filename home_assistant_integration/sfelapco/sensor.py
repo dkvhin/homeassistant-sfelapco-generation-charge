@@ -17,6 +17,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -45,10 +46,20 @@ async def async_setup_entry(
     # Fetch initial data so we have data when entities subscribe
     await coordinator.async_config_entry_first_refresh()
     
+    # Create device info for all sensors
+    device_info = DeviceInfo(
+        identifiers={(DOMAIN, f"{host}:{port}")},
+        name=f"SFELAPCO Monitor ({host}:{port})",
+        manufacturer="SFELAPCO",
+        model="Generation Charge Monitor",
+        sw_version="1.0.0",
+        configuration_url=f"http://{host}:{port}",
+    )
+    
     # Create sensors
     entities = [
-        SFELAPCOGenerationChargeSensor(coordinator),
-        SFELAPCOLastUpdateSensor(coordinator),
+        SFELAPCOGenerationChargeSensor(coordinator, device_info),
+        SFELAPCOLastUpdateSensor(coordinator, device_info),
     ]
     
     async_add_entities(entities)
@@ -88,15 +99,16 @@ class SFELAPCODataUpdateCoordinator(DataUpdateCoordinator):
 class SFELAPCOGenerationChargeSensor(CoordinatorEntity, SensorEntity):
     """Representation of SFELAPCO Generation Charge sensor."""
 
-    def __init__(self, coordinator: SFELAPCODataUpdateCoordinator) -> None:
+    def __init__(self, coordinator: SFELAPCODataUpdateCoordinator, device_info: DeviceInfo) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._attr_name = "SFELAPCO Generation Charge"
+        self._attr_name = "Generation Charge"
         self._attr_unique_id = f"{coordinator.host}_{coordinator.port}_generation_charge"
         self._attr_device_class = SensorDeviceClass.MONETARY
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_unit_of_measurement = "PHP/kWh"
         self._attr_icon = "mdi:flash"
+        self._attr_device_info = device_info
 
     @property
     def native_value(self) -> float | None:
@@ -126,13 +138,14 @@ class SFELAPCOGenerationChargeSensor(CoordinatorEntity, SensorEntity):
 class SFELAPCOLastUpdateSensor(CoordinatorEntity, SensorEntity):
     """Representation of SFELAPCO Last Update sensor."""
 
-    def __init__(self, coordinator: SFELAPCODataUpdateCoordinator) -> None:
+    def __init__(self, coordinator: SFELAPCODataUpdateCoordinator, device_info: DeviceInfo) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._attr_name = "SFELAPCO Last Update"
+        self._attr_name = "Last Update"
         self._attr_unique_id = f"{coordinator.host}_{coordinator.port}_last_update"
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_icon = "mdi:clock"
+        self._attr_device_info = device_info
 
     @property
     def native_value(self) -> str | None:

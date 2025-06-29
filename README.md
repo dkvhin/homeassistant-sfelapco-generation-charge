@@ -22,29 +22,45 @@ _Monitor SFELAPCO monthly generation charges and electricity rates with web inte
 
 ## Home Assistant Integration
 
-This repository also includes a custom Home Assistant integration for seamless sensor creation:
+This repository also includes a **proper custom Home Assistant integration** for seamless sensor creation:
 
 ### [SFELAPCO Custom Integration](./home_assistant_integration)
 
-A proper Home Assistant integration that creates sensors by polling the addon's API. Features:
+A fully UI-configurable Home Assistant integration that creates sensors by polling the addon's API. Features:
 
-- Easy setup via config flow
-- Automatic sensor discovery
-- Efficient data coordination
-- Rich sensor attributes
+- **UI Configuration**: No YAML required - fully configurable through Home Assistant's UI
+- **Device Registry Support**: Creates a proper device in Home Assistant's device registry
+- **Config Flow Setup**: Easy setup via Settings → Integrations with connection testing
+- **Data Coordinator**: Efficient API polling with proper error handling
+- **Rich Sensor Attributes**: Additional context data for automations and dashboards
+- **Automatic Updates**: Polls addon every hour for the latest generation charge data
+
+**Entities Created:**
+- `sensor.generation_charge` - Current generation charge rate (PHP/kWh)
+- `sensor.last_update` - Timestamp of last successful update
 
 ## Installation Options
 
 ### Option 1: Addon Only (Web Interface + API)
 1. Add this repository to Home Assistant Supervisor
 2. Install the SFELAPCO addon
-3. Use the web interface or integrate via RESTful sensors
+3. Use the web interface at `http://homeassistant.local:8099`
+4. Optionally integrate via RESTful sensors (manual YAML configuration)
 
 ### Option 2: Addon + Custom Integration (Recommended)
 1. Install the addon (as above)
 2. Copy the `home_assistant_integration/sfelapco` folder to `<config>/custom_components/sfelapco`
 3. Restart Home Assistant
-4. Add the SFELAPCO integration via Settings → Integrations
+4. Go to **Settings** → **Devices & Services** → **Add Integration**
+5. Search for "SFELAPCO Generation Charge Monitor" and configure
+
+### Why Use the Custom Integration?
+
+- **No YAML Configuration**: Everything is configured through the UI
+- **Proper Device Management**: Shows up as a device in Home Assistant with all sensors grouped
+- **Better Error Handling**: Automatic retries and clear error reporting
+- **Rich Attributes**: More data available for automations and dashboards
+- **Maintenance**: Easier to update and manage through the Home Assistant UI
 
 <!--
 

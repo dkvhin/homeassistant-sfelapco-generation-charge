@@ -39,10 +39,11 @@ class SFELAPCOConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             host = user_input[CONF_HOST]
             port = user_input[CONF_PORT]
             
+            # Check if already configured
+            await self.async_set_unique_id(f"{host}:{port}")
+            self._abort_if_unique_id_configured()
+            
             if await self._test_connection(host, port):
-                await self.async_set_unique_id(f"{host}:{port}")
-                self._abort_if_unique_id_configured()
-                
                 return self.async_create_entry(
                     title=f"SFELAPCO Monitor ({host}:{port})",
                     data=user_input,

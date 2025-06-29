@@ -179,19 +179,25 @@ from flask import Flask, render_template, jsonify, request, abort
 app = Flask(__name__, template_folder='/web/templates', static_folder='/web/static')
 monitor = SFELAPCOMonitor()
 
-# Ingress security: Only allow connections from Home Assistant ingress gateway
+# Ingress security: Only allow connections from Home Assistant ingress gateway or localhost
 @app.before_request
 def limit_remote_addr():
     # Log request details for debugging
     logger.debug(f"Request from {request.environ.get('REMOTE_ADDR')} to {request.path}")
     
-    # Home Assistant ingress gateway IP
+    # Allow connections from:
+    # - Home Assistant ingress gateway IP (172.30.32.2)
+    # - Localhost (127.0.0.1, ::1) for direct API access
+    # - Home Assistant supervisor network (172.30.32.0/24)
     client_ip = request.environ.get('REMOTE_ADDR')
-    if client_ip != '172.30.32.2':
-        # Allow localhost for testing
-        if client_ip not in ['127.0.0.1', '::1']:
-            logger.warning(f"Blocked request from unauthorized IP: {client_ip}")
-            abort(403)  # Forbidden
+    allowed_ips = ['172.30.32.2', '127.0.0.1', '::1']
+    
+    # Allow the entire supervisor network range for Home Assistant integrations
+    if client_ip and (client_ip in allowed_ips or client_ip.startswith('172.30.32.')):
+        return
+    
+    logger.warning(f"Blocked request from unauthorized IP: {client_ip}")
+    abort(403)  # Forbidden
 
 @app.route('/')
 def index():
@@ -275,12 +281,14 @@ def main():
         scheduler_thread.start()
         logger.info("Scheduler thread started")
         
-        # Start Flask web interface for ingress
-        logger.info("Starting web interface for Home Assistant ingress on port 8099")
-        logger.info("Access will be available through Home Assistant 'OPEN WEB UI' button")
-        logger.info("Ingress security enabled - only accepting connections from 172.30.32.2")
+        # Start Flask web interface
+        logger.info("Starting web interface on port 8099")
+        logger.info("Access methods:")
+        logger.info("  1. Home Assistant Ingress: Use 'OPEN WEB UI' button in addon")
+        logger.info("  2. Direct API Access: http://localhost:8099 (for integrations)")
+        logger.info("Security: Only accepting connections from Home Assistant supervisor network")
         
-        # Start Flask with ingress configuration
+        # Start Flask with dual access configuration
         app.run(host='0.0.0.0', port=8099, debug=False, threaded=True, use_reloader=False)
         
     except Exception as e:

@@ -2,6 +2,25 @@
 
 All notable changes to the SFELAPCO Generation Charge Monitor addon will be documented in this file.
 
+## [1.0.4] - 2025-06-29
+
+### Added
+- **Port 8099 exposed** for direct API access from Home Assistant integrations
+- Enhanced network security allowing both ingress and direct API access
+- Better connection troubleshooting information
+
+### Changed
+- Updated network access configuration to support dual access methods:
+  1. Home Assistant Ingress (via "OPEN WEB UI" button)
+  2. Direct API access (via exposed port 8099)
+- Improved security to allow Home Assistant supervisor network access
+- Updated logging to reflect dual access configuration
+
+### Technical Details
+- Added `ports: 8099/tcp: 8099` to addon configuration
+- Modified IP filtering to allow Home Assistant supervisor network (172.30.32.0/24)
+- Enhanced startup logging to show available access methods
+
 ## [1.0.2] - 2025-06-29
 
 ### Breaking Changes
