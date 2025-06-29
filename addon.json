@@ -1,0 +1,9 @@
+{
+  "name": "SFELAPCO Generation Charge Monitor",
+  "description": "Monitor SFELAPCO monthly generation charges and electricity rates",
+  "version": "1.0.0",
+  "author": "Home Assistant Community",
+  "url": "https://sfelapco.com",
+  "stage": "stable",
+  "image": "ghcr.io/home-assistant/{arch}-addon-sfelapco"
+}

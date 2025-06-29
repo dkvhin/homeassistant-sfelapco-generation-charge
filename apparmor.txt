@@ -1,0 +1,65 @@
+#include <tunables/global>
+
+profile sfelapco_monitor flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Capabilities
+  capability,
+  network,
+  signal,
+
+  # S6-Overlay
+  /init ix,
+  /bin/** ix,
+  /usr/bin/** ix,
+  /run/{s6,s6-rc*,service}/** ix,
+  /package/** ix,
+  /command/** ix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
+  /etc/cont-finish.d/** rwix,
+  /run/{,**} rwk,
+  /dev/tty rw,
+
+  # Bashio
+  /usr/lib/bashio/** ix,
+  /tmp/** rwk,
+
+  # Access to options.json and other important files
+  /data/** rw,
+
+  # Start script
+  /run.sh r,
+
+  # Python and its modules
+  /usr/bin/python3 ix,
+  /usr/lib/python3*/** r,
+  /usr/local/lib/python3*/** r,
+
+  # Application files
+  /sfelapco_monitor.py r,
+  /requirements.txt r,
+  /web/** r,
+
+  # Network access for web scraping
+  network tcp,
+  network udp,
+
+  # DNS
+  /etc/resolv.conf r,
+  /etc/hosts r,
+
+  # SSL certificates
+  /etc/ssl/certs/** r,
+
+  # Proc filesystem
+  /proc/sys/kernel/random/uuid r,
+  owner @{PROC}/[0-9]*/stat r,
+  owner @{PROC}/[0-9]*/cmdline r,
+
+  # Data directory
+  /data/sfelapco_data.json rw,
+
+  # Logs
+  /var/log/** w,
+}

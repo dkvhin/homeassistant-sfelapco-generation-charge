@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SFELAPCO Generation Charge Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .current-charge {
+            text-align: center;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+        }
+        
+        .charge-value {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        
+        .charge-period {
+            font-size: 1.5rem;
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #495057;
+            border: 2px solid #dee2e6;
+        }
+        
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+        
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .history-table th,
+        .history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .history-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .history-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background: #4CAF50;
+        }
+        
+        .status-offline {
+            background: #f44336;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .charge-value {
+                font-size: 2.5rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ SFELAPCO Monitor</h1>
+            <p>Real-time Generation Charge Tracking</p>
+        </div>
+        
+        <div class="card current-charge">
+            <h2>Current Generation Charge</h2>
+            <div class="charge-value" id="currentRate">
+                {% if status.current_charge %}
+                    ₱{{ "%.5f"|format(status.current_charge.rate) }}
+                {% else %}
+                    Loading...
+                {% endif %}
+            </div>
+            <div class="charge-period" id="currentPeriod">
+                {% if status.current_charge %}
+                    {{ status.current_charge.month }} {{ status.current_charge.year }}
+                {% else %}
+                    per kWh
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="lastUpdate">
+                    {% if status.last_update %}
+                        {{ status.last_update.split('T')[0] }}
+                    {% else %}
+                        Never
+                    {% endif %}
+                </div>
+                <div class="stat-label">Last Updated</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-value">{{ status.history_count or 0 }}</div>
+                <div class="stat-label">Historical Records</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-value">{{ status.update_interval_days or 1.0 }}d</div>
+                <div class="stat-label">Update Interval</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-value">
+                    <span class="status-indicator status-online"></span>
+                    Online
+                </div>
+                <div class="stat-label">Service Status</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" onclick="updateNow()">🔄 Update Now</button>
+            <button class="btn btn-secondary" onclick="toggleHistory()">📊 View History</button>
+            <button class="btn btn-secondary" onclick="refreshPage()">↻ Refresh</button>
+            <button class="btn btn-secondary" onclick="testConnection()">🔍 Test API</button>
+        </div>
+        
+        <div class="card" id="historyCard" style="display: none;">
+            <h3>Generation Charge History</h3>
+            <div id="historyContent" class="loading">Loading history...</div>
+        </div>
+    </div>
+    
+    <script>
+        let historyVisible = false;
+        
+        function updateNow() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ Updating...';
+            btn.disabled = true;
+            
+            fetch('./api/update')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        const errorMsg = data.error ? `Error: ${data.error}` : 'Update failed. Please try again.';
+                        alert(errorMsg);
+                    }
+                })
+                .catch(error => {
+                    console.error('Update error:', error);
+                    alert(`Update failed: ${error.message}`);
+                })
+                .finally(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+        }
+        
+        function toggleHistory() {
+            const card = document.getElementById('historyCard');
+            const content = document.getElementById('historyContent');
+            
+            if (historyVisible) {
+                card.style.display = 'none';
+                historyVisible = false;
+                event.target.innerHTML = '📊 View History';
+            } else {
+                card.style.display = 'block';
+                historyVisible = true;
+                event.target.innerHTML = '📊 Hide History';
+                loadHistory();
+            }
+        }
+        
+        function loadHistory() {
+            const content = document.getElementById('historyContent');
+            content.innerHTML = '<div class="loading">Loading history...</div>';
+            
+            fetch('./api/history')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length === 0) {
+                        content.innerHTML = '<p style="text-align: center; color: #666;">No historical data available yet.</p>';
+                        return;
+                    }
+                    
+                    let html = `
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Period</th>
+                                    <th>Rate (PHP/kWh)</th>
+                                    <th>Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    data.forEach(record => {
+                        const date = new Date(record.timestamp);
+                        html += `
+                            <tr>
+                                <td>${record.month} ${record.year}</td>
+                                <td>₱${record.rate.toFixed(5)}</td>
+                                <td>${date.toLocaleDateString()}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += '</tbody></table>';
+                    content.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    content.innerHTML = '<p style="text-align: center; color: #f44336;">Error loading history. Please try again.</p>';
+                });
+        }
+        
+        function refreshPage() {
+            location.reload();
+        }
+        
+        function testConnection() {
+            console.log('Testing API connection...');
+            fetch('./debug')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Debug info:', data);
+                    alert(`API Test Successful!\nRemote IP: ${data.remote_addr}\nIngress Path: ${data.ingress_path}`);
+                })
+                .catch(error => {
+                    console.error('Connection test failed:', error);
+                    alert(`API Test Failed: ${error.message}`);
+                });
+        }
+        
+        // Auto-refresh every 5 minutes
+        setInterval(() => {
+            fetch('./api/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.current_charge) {
+                        document.getElementById('currentRate').textContent = `₱${data.current_charge.rate.toFixed(5)}`;
+                        document.getElementById('currentPeriod').textContent = `${data.current_charge.month} ${data.current_charge.year}`;
+                    }
+                    if (data.last_update) {
+                        document.getElementById('lastUpdate').textContent = data.last_update.split('T')[0];
+                    }
+                })
+                .catch(error => console.error('Auto-refresh error:', error));
+        }, 300000); // 5 minutes
+    </script>
+</body>
+</html>
